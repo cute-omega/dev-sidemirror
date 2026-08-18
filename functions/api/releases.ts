@@ -15,21 +15,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return Response.json({ releases: cached })
   }
 
-  const ghRes = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`,
-    {
-      headers: {
-        'User-Agent': 'dev-sidemirror',
-        'Accept': 'application/vnd.github+json',
-      },
-    }
-  )
+  const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`, {
+    headers: {
+      'User-Agent': 'dev-sidemirror',
+      Accept: 'application/vnd.github+json',
+    },
+  })
 
   if (!ghRes.ok) {
     return Response.json({ error: 'GitHub API error', status: ghRes.status }, { status: 502 })
   }
 
-  const ghData = await ghRes.json() as any
+  const ghData = (await ghRes.json()) as any
 
   const releases = ghData
     .filter((r: any) => !r.draft)

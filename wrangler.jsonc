@@ -1,21 +1,17 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "dev-sidemirror",
-	"compatibility_date": "2026-08-17",
-	"pages_build_output_dir": "./dist",
-	"observability": {
-		"enabled": true
-	},
-	"upload_source_maps": true,
-	"r2_buckets": [
-		{ "binding": "R1", "bucket_name": "r1_dev_sidemirror" }
-	],
-	"kv_namespaces": [
-		{ "binding": "KV", "id": "kv_dev_sidemirror" }
-	],
-	"vars": {
-		"GITHUB_REPO": "docmirror/dev-sidecar",
-		"R1_MAX_CAPACITY": "10737418240",
-		"KEEP_RELEASES_COUNT": "3"
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dev-sidemirror",
+  "compatibility_date": "2026-08-17",
+  "pages_build_output_dir": "./dist",
+  "observability": {
+    "enabled": true,
+  },
+  "upload_source_maps": true,
+  "r2_buckets": [{ "binding": "R2", "bucket_name": "mirrors" }],
+  "kv_namespaces": [{ "binding": "KV", "id": "kv_dev_sidemirror" }],
+  "vars": {
+    "GITHUB_REPO": "docmirror/dev-sidecar",
+    "R2_MAX_CAPACITY": "10737418240",
+    "KEEP_RELEASES_COUNT": "3",
+  },
 }

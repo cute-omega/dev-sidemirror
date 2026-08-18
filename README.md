@@ -1,38 +1,146 @@
-# dev-sidemirror
+# Dev SideMirror
 
-This template should help get you started developing with Vue 3 in Vite.
+基于 Vue 3 和 Cloudflare Pages 构建的 GitHub Releases 镜像服务。将发布文件缓存到 Cloudflare R2 存储中，提供简洁的 UI 来浏览和下载发布文件，支持自动检测操作系统和架构。
 
-## Recommended IDE Setup
+## 功能特性
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- 浏览所有 GitHub 发布版本及其文件
+- 通过 User-Agent 自动检测用户操作系统和架构
+- 推荐适合的下载文件
+- 将发布文件缓存到 Cloudflare R2 加速下载
+- 智能缓存，存储满时自动 LRU 淘汰
+- 自动清理旧版本缓存
+- 跟随系统偏好的亮色/暗色主题
 
-## Recommended Browser Setup
+## 项目结构
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+```
+dev-sidemirror/
+├── functions/                    # Cloudflare Pages Functions (API)
+│   └── api/
+│       ├── releases.ts          # GET /api/releases - 列出所有发布版本
+│       ├── download/
+│       │   └── [...version].ts  # GET /api/download/:version/:file - 下载/代理文件
+│       ├── stats.ts             # GET /api/stats - 下载统计
+│       └── cleanup.ts           # GET /api/cleanup - 清理旧版本缓存
+├── src/                         # Vue 3 前端
+│   ├── App.vue
+│   ├── components/
+│   │   ├── ReleaseList.vue      # 发布版本列表
+│   │   ├── ReleaseCard.vue      # 单个版本卡片
+│   │   ├── FileList.vue         # 文件列表
+│   │   └── FileCard.vue         # 单个文件卡片（含下载按钮）
+│   ├── composables/
+│   │   ├── useReleases.js       # 获取发布数据
+│   │   └── useUserAgent.js      # 解析 User-Agent
+│   └── utils/
+│       └── filenameParser.js    # 解析文件名获取操作系统/架构
+├── wrangler.jsonc               # Cloudflare 配置
+└── package.json
+```
 
-## Customize configuration
+## 前置条件
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- Node.js >= 22.18.0
+- 已启用 Pages、R2 和 KV 的 Cloudflare 账户
 
-## Project Setup
+## 安装步骤
 
-```sh
+### 1. 安装依赖
+
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+### 2. 创建 Cloudflare 资源
 
-```sh
+创建 R2 存储桶：
+
+```bash
+wrangler r2 bucket create mirrors
+```
+
+创建 KV 命名空间：
+
+```bash
+wrangler kv namespace create KV
+```
+
+### 3. 配置环境变量
+
+在 `wrangler.jsonc` 中更新你的配置，或在 Cloudflare Dashboard 中设置：
+
+```jsonc
+{
+  "vars": {
+    "GITHUB_REPO": "owner/repo", // 要镜像的 GitHub 仓库
+    "R2_MAX_CAPACITY": "10737418240", // R2 最大容量（字节，默认 10GB）
+    "KEEP_RELEASES_COUNT": "3", // 保留缓存的最近版本数
+  },
+}
+```
+
+### 4. 在 Dashboard 中配置绑定
+
+部署后，进入 Cloudflare Dashboard > Pages > 你的项目 > Settings > Functions：
+
+| 绑定类型     | 变量名 | 说明                        |
+| ------------ | ------ | --------------------------- |
+| R2 Bucket    | `R2`   | 用于文件缓存的 R2 存储桶    |
+| KV Namespace | `KV`   | 用于下载计数和发布缓存的 KV |
+
+### 5. 在 Dashboard 中设置环境变量
+
+进入 Cloudflare Dashboard > Pages > 你的项目 > Settings > Environment variables：
+
+| 变量名                | 说明                     | 示例                    |
+| --------------------- | ------------------------ | ----------------------- |
+| `GITHUB_REPO`         | GitHub 仓库 (owner/repo) | `docmirror/dev-sidecar` |
+| `R2_MAX_CAPACITY`     | R2 最大容量（字节）      | `10737418240` (10GB)    |
+| `KEEP_RELEASES_COUNT` | 保留缓存的版本数         | `3`                     |
+
+## 开发
+
+```bash
 npm run dev
 ```
 
-### Compile and Minify for Production
+## 构建
 
-```sh
+```bash
 npm run build
 ```
+
+## 预览
+
+```bash
+npm run preview
+```
+
+## 部署
+
+```bash
+npm run deploy
+```
+
+或连接你的 GitHub 仓库到 Cloudflare Pages 实现自动部署。
+
+## API 端点
+
+| 端点                                   | 说明                                |
+| -------------------------------------- | ----------------------------------- |
+| `GET /api/releases`                    | 列出所有发布版本（KV 缓存 5 分钟）  |
+| `GET /api/download/:version/:filename` | 下载发布文件（从 R2 或代理 GitHub） |
+| `GET /api/stats`                       | 获取下载统计                        |
+| `GET /api/cleanup`                     | 清理旧版本缓存                      |
+
+## 工作原理
+
+1. 前端从 `/api/releases` 获取发布数据
+2. API 优先检查 KV 缓存，未命中则调用 GitHub REST API
+3. 下载文件时：
+   - 如果 R2 中已缓存：直接返回（缓存命中）
+   - 如果未缓存：从 GitHub 代理下载，然后缓存到 R2
+4. 下载次数记录在 KV 中
+5. R2 存储满时，自动淘汰下载次数最少的文件（LRU）
+6. 超过 `KEEP_RELEASES_COUNT` 的旧版本会自动清理

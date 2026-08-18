@@ -12,10 +12,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "functions/**/*",
-    "worker-configuration.d.ts"
-  ],
+  "include": ["src/**/*", "functions/**/*", "worker-configuration.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
