@@ -1,0 +1,29 @@
+{
+	"name": "dev-sidemirror",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "npm run build && wrangler pages dev",
+		"format": "prettier --write --experimental-cli src/",
+		"deploy": "npm run build && wrangler pages deploy",
+		"cf-typegen": "wrangler types"
+	},
+	"dependencies": {
+		"vue": "^3.5.40"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "^4.3.3",
+		"@vitejs/plugin-vue": "^6.0.8",
+		"prettier": "3.9.5",
+		"tailwindcss": "^4.3.3",
+		"vite": "^8.1.5",
+		"vite-plugin-vue-devtools": "^8.1.5",
+		"wrangler": "^4.123.0"
+	},
+	"engines": {
+		"node": "^22.18.0 || >=24.12.0"
+	}
+}
